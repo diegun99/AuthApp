@@ -1,5 +1,6 @@
 // src/app/services/auth.service.ts
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
@@ -28,9 +29,19 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {
-    // Al iniciar, verificar si hay token guardado
-    this.loadUserFromStorage();
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private http: HttpClient,
+    private router: Router
+  ) {
+    // Al iniciar, verificar si hay token guardado (solo en el navegador)
+    if (this.isBrowser) {
+      this.loadUserFromStorage();
+    }
+  }
+
+  private get isBrowser(): boolean {
+    return isPlatformBrowser(this.platformId);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -63,6 +74,7 @@ export class AuthService {
   // LOGIN CON GOOGLE
   // ═══════════════════════════════════════════════════════
   loginWithGoogle(): void {
+    if (!this.isBrowser) return;
     // Redirigimos al backend, que redirige a Google
     window.location.href = `${this.apiUrl}/google-login`;
   }
@@ -102,6 +114,8 @@ export class AuthService {
   // HELPERS
   // ═══════════════════════════════════════════════════════
   isAuthenticated(): boolean {
+    if (!this.isBrowser) return false;
+
     const token = localStorage.getItem('token');
     if (!token) return false;
     
@@ -120,6 +134,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
+    if (!this.isBrowser) return null;
     return localStorage.getItem('token');
   }
 
